@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="employee-onboarding" name="Employee Onboarding Process" isExecutable="true" camunda:historyTimeToLive="P30D">
+    
+    <!-- Start Event -->
+    <bpmn:startEvent id="StartEvent_1" name="New Hire Request">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    
+    <!-- Task 1: Document Collection (Fast - 15-30 min) -->
+    <bpmn:userTask id="Task_Documents" name="Collect Documents" camunda:assignee="hr-clerk">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- Task 2: Background Check (Slow - 2-5 days) -->
+    <bpmn:userTask id="Task_BackgroundCheck" name="Background Check" camunda:assignee="hr-manager">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- Gateway: Check Results -->
+    <bpmn:exclusiveGateway id="Gateway_Check" name="Background Check OK?">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Reject</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <!-- Parallel Gateway for Onboarding Tasks -->
+    <bpmn:parallelGateway id="Gateway_Parallel_Split" name="Parallel Split">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_IT</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Facilities</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Manager</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    
+    <!-- Parallel Task 1: IT Setup (Medium - 2-4 hours) -->
+    <bpmn:userTask id="Task_ITSetup" name="Setup IT Account and Equipment" camunda:assignee="it-support">
+      <bpmn:incoming>Flow_IT</bpmn:incoming>
+      <bpmn:outgoing>Flow_IT_Join</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- Parallel Task 2: Facilities (Medium - 1-3 hours) -->
+    <bpmn:userTask id="Task_Facilities" name="Prepare Workspace" camunda:assignee="facilities">
+      <bpmn:incoming>Flow_Facilities</bpmn:incoming>
+      <bpmn:outgoing>Flow_Facilities_Join</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- Parallel Task 3: Manager Prep (Slow - 1-2 days) -->
+    <bpmn:userTask id="Task_ManagerPrep" name="Manager: Prepare Onboarding Plan" camunda:assignee="manager">
+      <bpmn:incoming>Flow_Manager</bpmn:incoming>
+      <bpmn:outgoing>Flow_Manager_Join</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- Parallel Join -->
+    <bpmn:parallelGateway id="Gateway_Parallel_Join" name="Parallel Join">
+      <bpmn:incoming>Flow_IT_Join</bpmn:incoming>
+      <bpmn:incoming>Flow_Facilities_Join</bpmn:incoming>
+      <bpmn:incoming>Flow_Manager_Join</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    
+    <!-- Task 3: Orientation (Medium - 4 hours) -->
+    <bpmn:userTask id="Task_Orientation" name="HR Orientation" camunda:assignee="hr-specialist">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- Task 4: System Training (Variable - 1-3 days) -->
+    <bpmn:userTask id="Task_Training" name="System Training" camunda:assignee="trainer">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- Task 5: Final Review (Fast - 30 min) -->
+    <bpmn:userTask id="Task_Review" name="Final Review and Sign-off" camunda:assignee="hr-manager">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- Rejection Path -->
+    <bpmn:userTask id="Task_Reject" name="Notify Rejection" camunda:assignee="hr-manager">
+      <bpmn:incoming>Flow_Reject</bpmn:incoming>
+      <bpmn:outgoing>Flow_End_Reject</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- End Events -->
+    <bpmn:endEvent id="EndEvent_Success" name="Employee Onboarded">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <bpmn:endEvent id="EndEvent_Reject" name="Application Rejected">
+      <bpmn:incoming>Flow_End_Reject</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_Documents"/>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_Documents" targetRef="Task_BackgroundCheck"/>
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_BackgroundCheck" targetRef="Gateway_Check"/>
+    <bpmn:sequenceFlow id="Flow_4" name="Yes" sourceRef="Gateway_Check" targetRef="Gateway_Parallel_Split">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${backgroundCheckPassed == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Reject" name="No" sourceRef="Gateway_Check" targetRef="Task_Reject">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${backgroundCheckPassed == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_IT" sourceRef="Gateway_Parallel_Split" targetRef="Task_ITSetup"/>
+    <bpmn:sequenceFlow id="Flow_Facilities" sourceRef="Gateway_Parallel_Split" targetRef="Task_Facilities"/>
+    <bpmn:sequenceFlow id="Flow_Manager" sourceRef="Gateway_Parallel_Split" targetRef="Task_ManagerPrep"/>
+    <bpmn:sequenceFlow id="Flow_IT_Join" sourceRef="Task_ITSetup" targetRef="Gateway_Parallel_Join"/>
+    <bpmn:sequenceFlow id="Flow_Facilities_Join" sourceRef="Task_Facilities" targetRef="Gateway_Parallel_Join"/>
+    <bpmn:sequenceFlow id="Flow_Manager_Join" sourceRef="Task_ManagerPrep" targetRef="Gateway_Parallel_Join"/>
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Gateway_Parallel_Join" targetRef="Task_Orientation"/>
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_Orientation" targetRef="Task_Training"/>
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_Training" targetRef="Task_Review"/>
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="Task_Review" targetRef="EndEvent_Success"/>
+    <bpmn:sequenceFlow id="Flow_End_Reject" sourceRef="Task_Reject" targetRef="EndEvent_Reject"/>
+    
+  </bpmn:process>
+  
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="employee-onboarding">
+      
+      <!-- Shapes -->
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_1" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="182" width="36" height="36"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="147" y="225" width="70" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_Documents" bpmnElement="Task_Documents">
+        <dc:Bounds x="240" y="160" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_BackgroundCheck" bpmnElement="Task_BackgroundCheck">
+        <dc:Bounds x="380" y="160" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Gateway_Check" bpmnElement="Gateway_Check" isMarkerVisible="true">
+        <dc:Bounds x="530" y="175" width="50" height="50"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="520" y="232" width="90" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Gateway_Parallel_Split" bpmnElement="Gateway_Parallel_Split" isMarkerVisible="true">
+        <dc:Bounds x="630" y="175" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      
+      <!-- Parallel Tasks Row 1 -->
+      <bpmndi:BPMNShape id="_BPMNShape_Task_ITSetup" bpmnElement="Task_ITSetup">
+        <dc:Bounds x="720" y="80" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_Facilities" bpmnElement="Task_Facilities">
+        <dc:Bounds x="720" y="160" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_ManagerPrep" bpmnElement="Task_ManagerPrep">
+        <dc:Bounds x="720" y="240" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Gateway_Parallel_Join" bpmnElement="Gateway_Parallel_Join" isMarkerVisible="true">
+        <dc:Bounds x="860" y="175" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_Orientation" bpmnElement="Task_Orientation">
+        <dc:Bounds x="940" y="160" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_Training" bpmnElement="Task_Training">
+        <dc:Bounds x="1080" y="160" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_Review" bpmnElement="Task_Review">
+        <dc:Bounds x="1220" y="160" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_EndEvent_Success" bpmnElement="EndEvent_Success">
+        <dc:Bounds x="1360" y="182" width="36" height="36"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1345" y="225" width="80" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <!-- Rejection Path -->
+      <bpmndi:BPMNShape id="_BPMNShape_Task_Reject" bpmnElement="Task_Reject">
+        <dc:Bounds x="500" y="300" width="100" height="80"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_EndEvent_Reject" bpmnElement="EndEvent_Reject">
+        <dc:Bounds x="650" y="322" width="36" height="36"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="635" y="365" width="80" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <!-- Edges -->
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="188" y="200"/>
+        <di:waypoint x="240" y="200"/>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="340" y="200"/>
+        <di:waypoint x="380" y="200"/>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="480" y="200"/>
+        <di:waypoint x="530" y="200"/>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="580" y="200"/>
+        <di:waypoint x="630" y="200"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="600" y="182" width="20" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_Reject_di" bpmnElement="Flow_Reject">
+        <di:waypoint x="555" y="225"/>
+        <di:waypoint x="550" y="300"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="560" y="255" width="20" height="14"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_IT_di" bpmnElement="Flow_IT">
+        <di:waypoint x="680" y="200"/>
+        <di:waypoint x="720" y="120"/>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_Facilities_di" bpmnElement="Flow_Facilities">
+        <di:waypoint x="680" y="200"/>
+        <di:waypoint x="720" y="200"/>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_Manager_di" bpmnElement="Flow_Manager">
+        <di:waypoint x="680" y="200"/>
+        <di:waypoint x="720" y="280"/>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_IT_Join_di" bpmnElement="Flow_IT_Join">
+        <di:waypoint x="820" y="120"/>
+        <di:waypoint x="885" y="175"/>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_Facilities_Join_di" bpmnElement="Flow_Facilities_Join">
+        <di:waypoint x="820" y="200"/>
+        <di:waypoint x="860" y="200"/>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_Manager_Join_di" bpmnElement="Flow_Manager_Join">
+        <di:waypoint x="820" y="280"/>
+        <di:waypoint x="885" y="225"/>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="910" y="200"/>
+        <di:waypoint x="940" y="200"/>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="1040" y="200"/>
+        <di:waypoint x="1080" y="200"/>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="1180" y="200"/>
+        <di:waypoint x="1220" y="200"/>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="1320" y="200"/>
+        <di:waypoint x="1360" y="200"/>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_End_Reject_di" bpmnElement="Flow_End_Reject">
+        <di:waypoint x="600" y="340"/>
+        <di:waypoint x="650" y="340"/>
+      </bpmndi:BPMNEdge>
+      
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
