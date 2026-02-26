@@ -1,17 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import './App.css';
+import Auth from './components/Auth';
+import BpmnViewer from './components/BpmnViewer';
 import BpmnEditor from './components/BpmnEditor';
 import BpmnUploader from './components/BpmnUploader';
 import ProcessIntelligence from './components/ProcessIntelligence';
 import TaskList from './components/TaskList';
+import './App.css';
+import logo from './assets/logo.png';
 
 function App() {
+  const [activeTab, setActiveTab] = useState('risks');
   const [risks, setRisks] = useState([]);
   const [processes, setProcesses] = useState([]);
-  const [activeTab, setActiveTab] = useState('risks');
   const [selectedProcess, setSelectedProcess] = useState(null);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
+    // Check if user is logged in (from localStorage)
+    const savedUser = localStorage.getItem('v-bpm-user');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+
+    // Fetch initial data
     fetch('/api/risks')
       .then(res => res.json())
       .then(data => setRisks(data))
@@ -23,23 +34,56 @@ function App() {
       .catch(err => console.error('Error fetching processes:', err));
   }, []);
 
+  const handleLogin = (userData) => {
+    setUser(userData);
+    localStorage.setItem('v-bpm-user', JSON.stringify(userData));
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem('v-bpm-user');
+  };
+
   const handleProcessClick = (process) => {
     setSelectedProcess(process);
     setActiveTab('diagram');
   };
 
+  // Show Auth component if not logged in
+  if (!user) {
+    return <Auth onLogin={handleLogin} />;
+  }
+
   return (
     <div className="App">
       <header className="App-header">
-        <h1>v-bpm</h1>
-        <p>Business Process Management Platform</p>
+        <div className="header-content">
+          <div className="header-left">
+            <div className="title-section">
+              <h1>v-bpm</h1>
+             
+            </div>
+          </div>
+          <div className="user-info">
+            <span>Welcome, {user.name}</span>
+            <button onClick={handleLogout} className="logout-btn">
+              Logout
+            </button>
+          </div>
+        </div>
       </header>
       
       <div className="main-layout">
         <div className="taskbar">
-          <div className="taskbar-header">
-            <h2>v-bpm</h2>
-            <p>BPM Platform</p>
+          <div className="taskbar-header text-center">
+            <img src={logo} alt="Company Logo" style={{ 
+              height: '40px', 
+              width: 'auto', 
+              maxHeight: '40px',
+              maxWidth: '120px',
+              objectFit: 'contain',
+              marginBottom: '15px'
+            }} />
           </div>
           <button 
             className={`taskbar-item ${activeTab === 'risks' ? 'active' : ''}`}
@@ -58,20 +102,20 @@ function App() {
             onClick={() => setActiveTab('diagram')}
             disabled={!selectedProcess}
           >
-            BPMN Editor
+            Diagram
           </button>
           <button 
             className={`taskbar-item ${activeTab === 'upload' ? 'active' : ''}`}
             onClick={() => setActiveTab('upload')}
           >
-            Upload BPMN
+            Upload
           </button>
           <button 
             className={`taskbar-item ${activeTab === 'intelligence' ? 'active' : ''}`}
             onClick={() => setActiveTab('intelligence')}
             disabled={!selectedProcess}
           >
-            Process Intelligence
+            Intelligence
           </button>
           <button 
             className={`taskbar-item ${activeTab === 'tasks' ? 'active' : ''}`}
@@ -202,8 +246,8 @@ function App() {
           </div>
         )}
       </div>
-      </div>
     </div>
+  </div>
   );
 
   function startProcess(processId) {

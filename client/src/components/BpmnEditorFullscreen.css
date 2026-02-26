@@ -1,0 +1,59 @@
+/* BPMN Editor Full-Screen Styles */
+
+/* Full-screen styles for editor container only */
+.bpmn-editor-container:-webkit-full-screen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999 !important;
+  background: white !important;
+}
+
+.bpmn-editor-container:-moz-full-screen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999 !important;
+  background: white !important;
+}
+
+.bpmn-editor-container:-ms-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999 !important;
+  background: white !important;
+}
+
+.bpmn-editor-container:fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999 !important;
+  background: white !important;
+}
+
+/* Ensure toolbar stays visible in fullscreen */
+.bpmn-editor-container:-webkit-full-screen .toolbar,
+.bpmn-editor-container:-moz-full-screen .toolbar,
+.bpmn-editor-container:-ms-fullscreen .toolbar,
+.bpmn-editor-container:fullscreen .toolbar {
+  position: relative !important;
+  z-index: 10000 !important;
+}
+
+/* Ensure canvas takes full space in fullscreen */
+.bpmn-editor-container:-webkit-full-screen .canvas-container,
+.bpmn-editor-container:-moz-full-screen .canvas-container,
+.bpmn-editor-container:-ms-fullscreen .canvas-container,
+.bpmn-editor-container:fullscreen .canvas-container {
+  height: calc(100vh - 60px) !important; /* Subtract toolbar height */
+}

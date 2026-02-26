@@ -1,8 +1,26 @@
+/* ===== VARIABLES ===== */
+:root {
+  --primary-dark: #2c3e50;
+  --primary-medium: #34495e;
+  --primary-light: #3d566e;
+  --accent-color: #e74c3c;
+  --accent-dark: #c0392b;
+  --text-light: #ecf0f1;
+  --text-muted: #bdc3c7;
+  --text-dark: #2c3e50;
+  --text-gray: #666;
+  --border-color: #ddd;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.1);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.1);
+  --transition-speed: 0.3s;
+}
+
+/* ===== BASE LAYOUT ===== */
 .App {
   text-align: center;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -16,89 +34,87 @@
   position: relative;
 }
 
+/* ===== TASKBAR (SIDEBAR) ===== */
 .taskbar {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: #2c3e50;
+  background: var(--primary-dark);
   padding: 20px;
-  border-radius: 0;
-  box-shadow: 4px 0 16px rgba(0,0,0,0.2);
-  width: 220px;
+  width: 180px;
   position: fixed;
   top: 0;
   left: 0;
   height: 100vh;
   overflow-y: auto;
   z-index: 1000;
+  box-shadow: 4px 0 16px rgba(0,0,0,0.2);
 }
 
 .taskbar-header {
   text-align: center;
   padding: 20px 0;
   margin-bottom: 20px;
-  border-bottom: 2px solid #34495e;
+  border-bottom: 2px solid var(--primary-medium);
 }
 
 .taskbar-header h2 {
   margin: 0;
-  color: #ecf0f1;
+  color: var(--text-light);
   font-size: 1.8em;
   font-weight: 700;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 
 .taskbar-header p {
-  margin: 5px 0 0 0;
-  color: #bdc3c7;
+  margin: 5px 0 0;
+  color: var(--text-muted);
   font-size: 0.9em;
   opacity: 0.8;
 }
 
+.taskbar-header img {
+  max-height: 40px;
+  max-width: 120px;
+  height: auto;
+  object-fit: contain;
+  margin-bottom: 10px;
+  transition: transform var(--transition-speed) ease;
+}
+
+.taskbar-header img:hover {
+  transform: scale(1.05);
+}
+
+/* ===== TASKBAR ITEMS ===== */
 .taskbar-item {
   padding: 20px 24px;
   border: none;
-  background: #34495e;
-  color: #ecf0f1;
+  background: var(--primary-medium);
+  color: var(--text-light);
   cursor: pointer;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   text-align: left;
   white-space: nowrap;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 8px;
   position: relative;
   overflow: hidden;
 }
 
-/* Ripple effect */
-.taskbar-item::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
-  transform: translate(-50%, -50%);
-  transition: width 0.6s, height 0.6s;
-}
-
-.taskbar-item:active::before {
-  width: 300px;
-  height: 300px;
-}
-
 .taskbar-item:hover:not(:disabled) {
-  background: #e74c3c;
+  background: var(--accent-color);
   transform: translateX(4px);
   box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
 }
 
 .taskbar-item.active {
-  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-dark) 100%);
   color: white;
   box-shadow: 0 4px 16px rgba(231, 76, 60, 0.3);
   transform: translateX(2px);
@@ -107,27 +123,162 @@
 .taskbar-item:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-  background: #34495e;
+  background: var(--primary-medium);
   transform: none;
   box-shadow: none;
 }
 
-.taskbar-item:disabled:hover {
-  background: #34495e;
-  transform: none;
-  box-shadow: none;
+/* ===== HEADER ===== */
+.App-header {
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-medium) 100%);
+  padding: 25px;
+  color: white;
+  border-radius: 12px;
+  margin: 20px 20px 30px 200px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-/* Page transitions */
+.App-header h1 {
+  margin: 0;
+  font-size: 2.8em;
+  font-weight: 700;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.App-header p {
+  margin: 10px 0 0;
+  opacity: 0.9;
+  font-size: 1.1em;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.title-section {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== USER INFO ===== */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.user-info span {
+  color: var(--text-light);
+  font-weight: 500;
+  font-size: 1.1em;
+}
+
+.logout-btn {
+  background: rgba(231, 76, 60, 0.2);
+  color: var(--text-light);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all var(--transition-speed) ease;
+}
+
+.logout-btn:hover {
+  background: rgba(231, 76, 60, 0.3);
+  border-color: rgba(231, 76, 60, 0.5);
+  transform: translateY(-1px);
+}
+
+/* ===== MAIN CONTENT ===== */
 .content {
   text-align: left;
   flex: 1;
   min-width: 0;
-  margin-left: 240px;
+  margin-left: 200px;
   padding: 20px;
   animation: fadeIn 0.5s ease-in-out;
 }
 
+.content > div {
+  animation: slideIn 0.4s ease-out;
+}
+
+.content h2 {
+  color: var(--text-dark);
+  margin-bottom: 20px;
+  border-bottom: 3px solid var(--accent-color);
+  padding-bottom: 10px;
+  font-weight: 600;
+}
+
+/* ===== CARDS ===== */
+.card-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+  width: 100%;
+}
+
+.card {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: var(--shadow-md);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 12px 24px rgba(231, 76, 60, 0.15);
+  border-color: var(--accent-color);
+}
+
+.card h3 {
+  margin: 0 0 15px;
+  color: var(--text-dark);
+  font-size: 1.2em;
+  transition: color var(--transition-speed) ease;
+}
+
+.card:hover h3 {
+  color: var(--accent-color);
+}
+
+.card p {
+  margin: 8px 0;
+  color: var(--text-gray);
+  transition: color var(--transition-speed) ease;
+}
+
+.card:hover p {
+  color: var(--primary-medium);
+}
+
+.card strong {
+  color: var(--text-dark);
+  font-weight: 600;
+}
+
+/* ===== ANIMATIONS ===== */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -137,10 +288,6 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.content > div {
-  animation: slideIn 0.4s ease-out;
 }
 
 @keyframes slideIn {
@@ -154,109 +301,55 @@
   }
 }
 
-.App-header {
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-  padding: 25px;
-  color: white;
-  border-radius: 12px;
-  margin: 20px 0 30px 240px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-  border: 1px solid rgba(255,255,255,0.1);
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 768px) {
+  .taskbar {
+    width: 60px;
+    padding: 20px 10px;
+  }
+  
+  .taskbar-header h2,
+  .taskbar-header p,
+  .taskbar-item span {
+    display: none;
+  }
+  
+  .taskbar-item {
+    padding: 15px;
+    text-align: center;
+  }
+  
+  .content,
+  .App-header {
+    margin-left: 80px;
+  }
+  
+  .App-header {
+    margin-right: 10px;
+  }
+  
+  .App-header h1 {
+    font-size: 2em;
+  }
+  
+  .card-container {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
 }
 
-.App-header h1 {
-  margin: 0;
-  font-size: 2.8em;
-  font-weight: 700;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-}
-
-.App-header p {
-  margin: 10px 0 0 0;
-  opacity: 0.9;
-  font-size: 1.1em;
-}
-
-.content h2 {
-  color: #2c3e50;
-  margin-bottom: 20px;
-  border-bottom: 3px solid #e74c3c;
-  padding-bottom: 10px;
-  font-weight: 600;
-}
-
-.card-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-  margin-top: 20px;
-}
-
-.card {
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  position: relative;
-  overflow: hidden;
-}
-
-.card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(231, 76, 60, 0.1), transparent);
-  transition: left 0.6s ease;
-}
-
-.card:hover::before {
-  left: 100%;
-}
-
-.card:hover {
-  transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 12px 24px rgba(231, 76, 60, 0.15);
-  border-color: #e74c3c;
-}
-
-.card h3 {
-  margin: 0 0 15px 0;
-  color: #2c3e50;
-  font-size: 1.2em;
-  transition: color 0.3s ease;
-}
-
-.card:hover h3 {
-  color: #e74c3c;
-}
-
-.card p {
-  margin: 8px 0;
-  color: #666;
-  transition: color 0.3s ease;
-}
-
-.card:hover p {
-  color: #34495e;
-}
-
-.card strong {
-  color: #2c3e50;
-  font-weight: 600;
-}
-
-.card.clickable {
-  cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.card.clickable:hover {
-  transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 12px 24px rgba(231, 76, 60, 0.15);
-  border-color: #e74c3c;
+@media (max-width: 480px) {
+  .App-header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+  
+  .user-info {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .card-container {
+    grid-template-columns: 1fr;
+  }
 }

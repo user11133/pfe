@@ -4,9 +4,13 @@ const dotenv = require('dotenv');
 const axios = require('axios');
 const camundaService = require('./services/camunda');
 const processIntelligenceService = require('./services/processIntelligence');
-const mockDataGenerator = require('./services/mockDataGenerator');
+const authService = require('./services/authService');
+const { initDatabase } = require('./services/database');
 
 dotenv.config();
+
+// Initialize database
+initDatabase();
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -16,8 +20,69 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// Authentication middleware
+const authenticateToken = async (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Access token required' });
+  }
+
+  try {
+    await authService.validateToken(token);
+    req.user = { token };
+    next();
+  } catch (error) {
+    return res.status(403).json({ error: 'Invalid or expired token' });
+  }
+};
+
+// Authentication routes
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: 'Email and password required' });
+    }
+
+    const user = await authService.login(email, password);
+    res.json({ success: true, user });
+  } catch (error) {
+    res.status(401).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, error: 'All fields are required' });
+    }
+
+    const user = await authService.register(name, email, password);
+    res.json({ success: true, user });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/auth/logout', async (req, res) => {
+  try {
+    const token = req.user?.token;
+    if (token) {
+      await authService.logout(token);
+    }
+    res.json({ success: true, message: 'Logged out successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Logout failed' });
+  }
+});
+
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'GRC BPM Platform with Camunda integration is running' });
+  res.json({ status: 'OK', message: 'v-bpm Platform with PostgreSQL and Camunda integration is running' });
 });
 
 app.get('/api/camunda/test', async (req, res) => {

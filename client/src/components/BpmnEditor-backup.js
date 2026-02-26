@@ -74,7 +74,7 @@ const BpmnEditor = ({ processDefinitionId, processName, xml: initialXml, onSave,
         modelerRef.current = modeler;
         console.log('✅ BPMN modeler created successfully');
 
-        // Import XML with better error handling
+      // Import XML with better error handling
         modeler.importXML(xml).then(() => {
           console.log('✅ BPMN XML imported successfully');
           setLoading(false);
@@ -127,6 +127,17 @@ const BpmnEditor = ({ processDefinitionId, processName, xml: initialXml, onSave,
         eventBus.on('selection.changed', (event) => {
           console.log('Selection changed:', event.newSelection.map(el => ({ id: el.id, type: el.type })));
           const selection = event.newSelection;
+          
+          // Prevent multiple clearings of the same selection
+          const currentSelectionId = selection.length === 1 ? selection[0].id : null;
+          const lastSelectionId = lastSelection ? lastSelection.id : null;
+          
+          if (currentSelectionId === lastSelectionId) {
+            console.log('Selection unchanged, skipping');
+            return;
+          }
+          
+          lastSelection = selection.length === 1 ? selection[0] : null;
           
           // Use setTimeout to prevent immediate clearing
           setTimeout(() => {
@@ -190,16 +201,11 @@ const BpmnEditor = ({ processDefinitionId, processName, xml: initialXml, onSave,
         return () => {
           modeler.destroy();
         };
-      } catch (initErr) {
-        console.error('❌ Modeler initialization failed:', initErr);
-        setError('Failed to initialize BPMN modeler: ' + initErr.message);
-        setLoading(false);
-      }
-    };
+      };
 
-    // Delay initialization to ensure DOM is ready
-    setTimeout(initModeler, 100);
-  }, [xml]);
+      // Delay initialization to ensure DOM is ready
+      setTimeout(initModeler, 100);
+    }, [xml, currentSubprocess?.id, currentSubprocess?.name, processName, selectedElement]);
 
   const updateProperties = (element) => {
     console.log('Updating properties for element:', element.id, element.type);
@@ -222,6 +228,7 @@ const BpmnEditor = ({ processDefinitionId, processName, xml: initialXml, onSave,
     }
 
     const modeling = modelerRef.current.get('modeling');
+    const businessObject = selectedElement.businessObject;
 
     if (key === 'name') {
       console.log('Updating name to:', value);
@@ -448,7 +455,7 @@ const BpmnEditor = ({ processDefinitionId, processName, xml: initialXml, onSave,
       display: 'flex', 
       height: '600px', 
       border: '1px solid #ddd',
-      overflow: 'hidden'
+      overflow: 'hidden' // Prevent overflow issues
     }}>
       {/* Main Canvas */}
       <div 
@@ -458,7 +465,7 @@ const BpmnEditor = ({ processDefinitionId, processName, xml: initialXml, onSave,
           flex: 1, 
           display: 'flex', 
           flexDirection: 'column',
-          minHeight: 0,
+          minHeight: 0, // Important for flex children
           position: 'relative',
           backgroundColor: isFullscreen ? '#fff' : 'transparent'
         }}
@@ -473,8 +480,7 @@ const BpmnEditor = ({ processDefinitionId, processName, xml: initialXml, onSave,
             gap: '10px',
             background: '#f5f5f5',
             alignItems: 'center'
-          }}
-        >
+          }}>
           {/* Breadcrumbs */}
           <div style={{ 
             display: 'flex', 
@@ -530,10 +536,6 @@ const BpmnEditor = ({ processDefinitionId, processName, xml: initialXml, onSave,
               onMouseOver={(e) => {
                 e.target.style.background = '#1976D2';
                 e.target.style.transform = 'translateY(-1px)';
-              }}
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.parentElement.innerHTML = '<span class="logo-fallback">🏢 LOGO</span>';
               }}
               onMouseOut={(e) => {
                 e.target.style.background = '#2196F3';
@@ -610,10 +612,9 @@ const BpmnEditor = ({ processDefinitionId, processName, xml: initialXml, onSave,
           style={{ 
             flex: 1, 
             position: 'relative',
-            minHeight: 0,
-            overflow: 'hidden'
-          }}
-        >
+            minHeight: 0, // Important for flex layout
+            overflow: 'hidden' // Prevent canvas overflow
+          }}>
           {loading && (
             <div style={{
               position: 'absolute',
@@ -680,8 +681,8 @@ const BpmnEditor = ({ processDefinitionId, processName, xml: initialXml, onSave,
         background: '#fafafa',
         display: 'flex',
         flexDirection: 'column',
-        minHeight: 0,
-        overflow: 'hidden'
+        minHeight: 0, // Important for flex layout
+        overflow: 'hidden' // Prevent overflow
       }}>
         <div style={{ 
           padding: '15px', 

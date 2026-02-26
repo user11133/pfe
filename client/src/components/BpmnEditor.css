@@ -1,0 +1,60 @@
+/* Full-screen styles for BPMN Editor */
+.bpmn-editor-container {
+  transition: all 0.3s ease;
+}
+
+.bpmn-editor-container.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  background: white;
+}
+
+.bpmn-editor-container.fullscreen .editor-panel {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 0;
+}
+
+.bpmn-editor-container.fullscreen .properties-panel {
+  display: none;
+}
+
+.bpmn-editor-container.fullscreen .bpmn-canvas-container {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 120px); /* Account for header height */
+  top: 60px; /* Account for header height */
+  left: 0;
+  z-index: 1;
+}
+
+.fullscreen-button {
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.3s ease;
+}
+
+.fullscreen-button:hover {
+  background: #218838;
+}
+
+.fullscreen-button.exit {
+  background: #dc3545;
+}
+
+.fullscreen-button.exit:hover {
+  background: #c82333;
+}

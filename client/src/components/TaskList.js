@@ -9,11 +9,6 @@ const TaskList = ({ processDefinitionId, processName, onTaskCompleted }) => {
   const [loading, setLoading] = useState(true);
   const [completingTaskId, setCompletingTaskId] = useState(null);
 
-  // Fetch tasks when process changes
-  useEffect(() => {
-    fetchTasks();
-  }, [processDefinitionId, fetchTasks]);
-
   const fetchTasks = async () => {
     try {
       setLoading(true);
@@ -34,6 +29,11 @@ const TaskList = ({ processDefinitionId, processName, onTaskCompleted }) => {
       setLoading(false);
     }
   };
+
+  // Fetch tasks when process changes
+  useEffect(() => {
+    fetchTasks();
+  }, [processDefinitionId]);
 
   const completeTask = async (taskId) => {
     try {
