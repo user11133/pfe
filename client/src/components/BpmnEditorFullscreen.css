@@ -50,6 +50,42 @@
   z-index: 10000 !important;
 }
 
+/* Ensure search palette stays visible in fullscreen - using class name */
+.bpmn-editor-container:-webkit-full-screen .search-palette,
+.bpmn-editor-container:-moz-full-screen .search-palette,
+.bpmn-editor-container:-ms-fullscreen .search-palette,
+.bpmn-editor-container:fullscreen .search-palette {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 250px !important;
+  height: 100vh !important;
+  z-index: 10001 !important;
+  background: #f8f9fa !important;
+  border-right: 1px solid #ddd !important;
+}
+
+/* Alternative selector for palette */
+.bpmn-editor-container:-webkit-full-screen div[style*="width: 250px"],
+.bpmn-editor-container:-moz-full-screen div[style*="width: 250px"],
+.bpmn-editor-container:-ms-fullscreen div[style*="width: 250px"],
+.bpmn-editor-container:fullscreen div[style*="width: 250px"] {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  height: 100vh !important;
+  z-index: 10001 !important;
+}
+
+/* Adjust canvas position in fullscreen to account for palette */
+.bpmn-editor-container:-webkit-full-screen .main-canvas,
+.bpmn-editor-container:-moz-full-screen .main-canvas,
+.bpmn-editor-container:-ms-fullscreen .main-canvas,
+.bpmn-editor-container:fullscreen .main-canvas {
+  margin-left: 250px !important;
+  height: 100vh !important;
+}
+
 /* Ensure canvas takes full space in fullscreen */
 .bpmn-editor-container:-webkit-full-screen .canvas-container,
 .bpmn-editor-container:-moz-full-screen .canvas-container,

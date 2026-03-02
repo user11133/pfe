@@ -8,6 +8,8 @@ const BpmnEditor = ({ processDefinitionId, processName, xml: initialXml, onSave,
   const containerRef = useRef(null);
   const modelerRef = useRef(null);
   const editorContainerRef = useRef(null);
+  const paletteRef = useRef(null);
+  const mainContainerRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [xml, setXml] = useState(initialXml || null);
@@ -68,7 +70,8 @@ const BpmnEditor = ({ processDefinitionId, processName, xml: initialXml, onSave,
           container: containerRef.current,
           keyboard: {
             bindTo: window
-          }
+          },
+          palette: true
         });
 
         modelerRef.current = modeler;
@@ -136,8 +139,8 @@ const BpmnEditor = ({ processDefinitionId, processName, xml: initialXml, onSave,
               setSelectedElement(selectedEl);
               updateProperties(selectedEl);
               
-              // Check if selected element should trigger navigation (for testing with any element)
-              if (selectedEl.type === 'bpmn:SubProcess' || selectedEl.type === 'bpmn:subProcess' || selectedEl.id.includes('Gateway')) {
+              // Only trigger navigation for SubProcesses, not for other elements
+              if (selectedEl.type === 'bpmn:SubProcess' || selectedEl.type === 'bpmn:subProcess') {
                 console.log('=== NAVIGATION TRIGGERED ===');
                 const subprocessId = selectedEl.id;
                 const subprocessName = selectedEl.businessObject?.name || `Element ${subprocessId}`;
@@ -152,25 +155,16 @@ const BpmnEditor = ({ processDefinitionId, processName, xml: initialXml, onSave,
                 };
                 
                 console.log('Adding to stack:', currentLevel);
-                
-                setNavigationStack(prev => {
-                  const newStack = [...prev, currentLevel];
-                  console.log('New navigation stack:', newStack);
-                  return newStack;
-                });
-                
+                setNavigationStack(prev => [...prev, currentLevel]);
                 setCurrentSubprocess({ id: subprocessId, name: subprocessName });
                 
-                // Zoom to selected element
-                const canvas = modeler.get('canvas');
-                canvas.zoom('fit-viewport', { element: selectedEl });
-                
                 console.log('Navigated to element:', subprocessName);
-              } else {
-                console.log('=== NOT A NAVIGATION ELEMENT ===');
-                console.log('Element type:', selectedEl.type);
-                console.log('Element ID:', selectedEl.id);
-                console.log('Expected types: bpmn:SubProcess, bpmn:subProcess, or any Gateway');
+                
+                // Zoom to the subprocess
+                const canvas = modeler.get('canvas');
+                if (canvas) {
+                  canvas.zoom('fit-viewport', { element: selectedEl });
+                }
               }
             } else {
               console.log('Selection cleared');
@@ -408,9 +402,9 @@ const BpmnEditor = ({ processDefinitionId, processName, xml: initialXml, onSave,
   // Full-screen functions
   const toggleFullscreen = () => {
     if (!isFullscreen) {
-      // Enter fullscreen for editor container only
-      if (editorContainerRef.current) {
-        editorContainerRef.current.requestFullscreen().catch(err => {
+      // Enter fullscreen for the entire BPMN editor layout
+      if (mainContainerRef.current) {
+        mainContainerRef.current.requestFullscreen().catch(err => {
           console.error('Error attempting to enable fullscreen:', err);
         });
       }
@@ -423,7 +417,57 @@ const BpmnEditor = ({ processDefinitionId, processName, xml: initialXml, onSave,
   };
 
   const handleFullscreenChange = () => {
-    setIsFullscreen(!!document.fullscreenElement);
+    const isCurrentlyFullscreen = !!document.fullscreenElement;
+    setIsFullscreen(isCurrentlyFullscreen);
+    
+    console.log('Fullscreen changed:', isCurrentlyFullscreen);
+    
+    // Manually adjust layout for fullscreen - use refs for reliability
+    const palette = paletteRef.current;
+    const canvas = editorContainerRef.current;
+    
+    console.log('Palette found:', !!palette);
+    console.log('Canvas found:', !!canvas);
+    
+    if (isCurrentlyFullscreen) {
+      // Enter fullscreen - adjust layout
+      console.log('Entering fullscreen - adjusting layout');
+      if (palette) {
+        palette.style.position = 'fixed';
+        palette.style.top = '0';
+        palette.style.left = '0';
+        palette.style.width = '250px';
+        palette.style.height = '100vh';
+        palette.style.zIndex = '10001';
+        palette.style.background = '#f8f9fa';
+        palette.style.borderRight = '1px solid #ddd';
+        console.log('Palette styles applied');
+      }
+      if (canvas) {
+        canvas.style.marginLeft = '250px';
+        canvas.style.height = '100vh';
+        console.log('Canvas styles applied');
+      }
+    } else {
+      // Exit fullscreen - restore original layout
+      console.log('Exiting fullscreen - restoring layout');
+      if (palette) {
+        palette.style.position = '';
+        palette.style.top = '';
+        palette.style.left = '';
+        palette.style.width = '';
+        palette.style.height = '';
+        palette.style.zIndex = '';
+        palette.style.background = '';
+        palette.style.borderRight = '';
+        console.log('Palette styles restored');
+      }
+      if (canvas) {
+        canvas.style.marginLeft = '';
+        canvas.style.height = '';
+        console.log('Canvas styles restored');
+      }
+    }
   };
 
   // Add fullscreen event listener
@@ -433,6 +477,351 @@ const BpmnEditor = ({ processDefinitionId, processName, xml: initialXml, onSave,
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
   }, []);
+
+  // Search-based element palette
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredElements, setFilteredElements] = useState([]);
+  
+  // BPMN elements database
+  const bpmnElements = [
+    // Events
+    { id: 'bpmn:StartEvent', name: 'Start Event', category: 'Events', icon: '⭕' },
+    { id: 'bpmn:EndEvent', name: 'End Event', category: 'Events', icon: '⭕' },
+    { id: 'bpmn:IntermediateEvent', name: 'Intermediate Event', category: 'Events', icon: '⭕' },
+    
+    // Boundary Events
+    { id: 'bpmn:BoundaryEvent', name: 'Escalation Boundary Event', category: 'Boundary Events', icon: '⭕', type: 'escalation' },
+    { id: 'bpmn:BoundaryEvent', name: 'Conditional Boundary Event', category: 'Boundary Events', icon: '⭕', type: 'conditional' },
+    { id: 'bpmn:BoundaryEvent', name: 'Signal Boundary Event', category: 'Boundary Events', icon: '⭕', type: 'signal' },
+    { id: 'bpmn:BoundaryEvent', name: 'Timer Boundary Event', category: 'Boundary Events', icon: '⭕', type: 'timer' },
+    { id: 'bpmn:BoundaryEvent', name: 'Error Boundary Event', category: 'Boundary Events', icon: '⭕', type: 'error' },
+    { id: 'bpmn:BoundaryEvent', name: 'Message Boundary Event', category: 'Boundary Events', icon: '⭕', type: 'message' },
+    
+    // Tasks
+    { id: 'bpmn:UserTask', name: 'User Task', category: 'Tasks', icon: '👤' },
+    { id: 'bpmn:ServiceTask', name: 'Service Task', category: 'Tasks', icon: '⚙️' },
+    { id: 'bpmn:ScriptTask', name: 'Script Task', category: 'Tasks', icon: '📝' },
+    { id: 'bpmn:ManualTask', name: 'Manual Task', category: 'Tasks', icon: '✋' },
+    { id: 'bpmn:SendTask', name: 'Send Task', category: 'Tasks', icon: '📤' },
+    { id: 'bpmn:ReceiveTask', name: 'Receive Task', category: 'Tasks', icon: '📥' },
+    { id: 'bpmn:BusinessRuleTask', name: 'Business Rule Task', category: 'Tasks', icon: '📋' },
+    
+    // Gateways
+    { id: 'bpmn:ExclusiveGateway', name: 'Exclusive Gateway', category: 'Gateways', icon: '◇' },
+    { id: 'bpmn:ParallelGateway', name: 'Parallel Gateway', category: 'Gateways', icon: '◈' },
+    { id: 'bpmn:InclusiveGateway', name: 'Inclusive Gateway', category: 'Gateways', icon: '⬡' },
+    { id: 'bpmn:ComplexGateway', name: 'Complex Gateway', category: 'Gateways', icon: '❖' },
+    { id: 'bpmn:EventBasedGateway', name: 'Event Based Gateway', category: 'Gateways', icon: '⬢' },
+    
+    // Sub Processes
+    { id: 'bpmn:SubProcess', name: 'Sub Process', category: 'Sub Processes', icon: '📦' },
+    { id: 'bpmn:CallActivity', name: 'Call Activity', category: 'Sub Processes', icon: '🔄' },
+    
+    // Data Elements
+    { id: 'bpmn:DataObjectReference', name: 'Data Object Reference', category: 'Data', icon: '📄' },
+    { id: 'bpmn:DataStoreReference', name: 'Data Store Reference', category: 'Data', icon: '💾' },
+    
+    // Participants/Collaboration
+    { id: 'bpmn:Participant', name: 'Expanded Pool/Participant', category: 'Participants', icon: '🏊', expanded: true },
+    { id: 'bpmn:Participant', name: 'Empty Pool/Participant', category: 'Participants', icon: '🏊', expanded: false },
+    
+    // Events (Advanced)
+    { id: 'bpmn:IntermediateCatchEvent', name: 'Timer Intermediate Event', category: 'Events', icon: '⏰', type: 'timer' },
+    { id: 'bpmn:IntermediateCatchEvent', name: 'Signal Intermediate Event', category: 'Events', icon: '📡', type: 'signal' },
+    { id: 'bpmn:IntermediateCatchEvent', name: 'Message Intermediate Event', category: 'Events', icon: '📧', type: 'message' },
+    { id: 'bpmn:IntermediateCatchEvent', name: 'Error Intermediate Event', category: 'Events', icon: '❌', type: 'error' },
+    
+    // Artifacts
+    { id: 'bpmn:TextAnnotation', name: 'Text Annotation', category: 'Artifacts', icon: '📝' },
+    { id: 'bpmn:Association', name: 'Association', category: 'Artifacts', icon: '↔️' },
+    { id: 'bpmn:Group', name: 'Group', category: 'Artifacts', icon: '📂' }
+  ];
+
+  // Filter elements based on search
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredElements(bpmnElements);
+    } else {
+      const filtered = bpmnElements.filter(element => 
+        element.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        element.category.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredElements(filtered);
+    }
+  }, [searchTerm]);
+
+  // Add element function
+  const addSearchElement = (element) => {
+    console.log('addSearchElement called with:', element);
+    
+    if (!modelerRef.current) {
+      console.error('Modeler not available');
+      return;
+    }
+
+    try {
+      const modeler = modelerRef.current;
+      const elementFactory = modeler.get('elementFactory');
+      const modeling = modeler.get('modeling');
+      const moddle = modeler.get('moddle');
+      const canvas = modeler.get('canvas');
+      
+      console.log('Modeler services available:', {
+        elementFactory: !!elementFactory,
+        modeling: !!modeling,
+        moddle: !!moddle,
+        canvas: !!canvas
+      });
+      
+      // Get the root element
+      const rootElement = canvas.getRootElement();
+      console.log('Root element:', rootElement);
+      
+      // Calculate position (center of viewport with some offset)
+      const viewbox = canvas.viewbox();
+      const centerX = -viewbox.x + viewbox.width / 2;
+      const centerY = -viewbox.y + viewbox.height / 2;
+      
+      // Add some randomness to prevent exact overlap
+      const randomOffset = () => (Math.random() - 0.5) * 100;
+      
+      // Special handling for boundary events - they need to be attached to a task
+      if (element.id === 'bpmn:BoundaryEvent') {
+        // Find a task to attach the boundary event to
+        const allElements = canvas.getRootElement().children;
+        const taskElement = allElements.find(el => 
+          el.type === 'bpmn:UserTask' || 
+          el.type === 'bpmn:ServiceTask' || 
+          el.type === 'bpmn:ScriptTask' ||
+          el.type === 'bpmn:Task'
+        );
+        
+        if (!taskElement) {
+          console.warn('No task found to attach boundary event. Creating a User Task first.');
+          // Create a simple task first
+          const taskBusinessObject = moddle.create('bpmn:UserTask', {
+            id: `bpmn_UserTask_${Date.now()}`,
+            name: 'Task with Boundary Event'
+          });
+          
+          const taskConfig = {
+            id: taskBusinessObject.id,
+            type: 'bpmn:UserTask',
+            businessObject: taskBusinessObject,
+            x: centerX + randomOffset(),
+            y: centerY + randomOffset(),
+            width: 100,
+            height: 80
+          };
+          
+          const taskElement = elementFactory.createShape(taskConfig);
+          canvas.addShape(taskElement, rootElement);
+          
+          // Now create the boundary event attached to this task
+          const boundaryBusinessObject = moddle.create('bpmn:BoundaryEvent', {
+            id: `${element.id.replace(':', '_')}_${Date.now()}`,
+            name: element.name,
+            cancelActivity: element.type !== 'signal'
+          });
+          
+          // Add event definition
+          let eventDefinition;
+          switch (element.type) {
+            case 'timer':
+              eventDefinition = moddle.create('bpmn:TimerEventDefinition');
+              break;
+            case 'signal':
+              eventDefinition = moddle.create('bpmn:SignalEventDefinition');
+              break;
+            case 'message':
+              eventDefinition = moddle.create('bpmn:MessageEventDefinition');
+              break;
+            case 'error':
+              eventDefinition = moddle.create('bpmn:ErrorEventDefinition');
+              break;
+            case 'escalation':
+              eventDefinition = moddle.create('bpmn:EscalationEventDefinition');
+              break;
+            case 'conditional':
+              eventDefinition = moddle.create('bpmn:ConditionalEventDefinition');
+              break;
+            default:
+              eventDefinition = moddle.create('bpmn:TimerEventDefinition');
+          }
+          boundaryBusinessObject.eventDefinitions = [eventDefinition];
+          
+          const boundaryConfig = {
+            id: boundaryBusinessObject.id,
+            type: element.id,
+            businessObject: boundaryBusinessObject,
+            x: taskElement.x + taskElement.width - 18, // Attach to right edge
+            y: taskElement.y - 18, // Attach to top edge
+            width: 36,
+            height: 36,
+            host: taskElement // Attach to the task
+          };
+          
+          const boundaryElement = elementFactory.createShape(boundaryConfig);
+          canvas.addShape(boundaryElement, taskElement);
+          
+          // Select the boundary event
+          const selection = modeler.get('selection');
+          selection.select(boundaryElement);
+          
+          console.log(`✅ Added ${element.name} attached to task`);
+          return;
+        }
+        
+        console.log('Found task to attach boundary event:', taskElement.id);
+        // ... rest of boundary event logic would go here
+      }
+      
+      // Create the business object using moddle
+      const businessObject = moddle.create(element.id, {
+        id: `${element.id.replace(':', '_')}_${Date.now()}`,
+        name: element.name
+      });
+
+      console.log('Created business object:', businessObject);
+
+      // Add specific properties for boundary events (if not handled above)
+      if (element.id === 'bpmn:BoundaryEvent' && element.type) {
+        let eventDefinition;
+        switch (element.type) {
+          case 'timer':
+            eventDefinition = moddle.create('bpmn:TimerEventDefinition');
+            break;
+          case 'signal':
+            eventDefinition = moddle.create('bpmn:SignalEventDefinition');
+            break;
+          case 'message':
+            eventDefinition = moddle.create('bpmn:MessageEventDefinition');
+            break;
+          case 'error':
+            eventDefinition = moddle.create('bpmn:ErrorEventDefinition');
+            break;
+          case 'escalation':
+            eventDefinition = moddle.create('bpmn:EscalationEventDefinition');
+            break;
+          case 'conditional':
+            eventDefinition = moddle.create('bpmn:ConditionalEventDefinition');
+            break;
+          default:
+            eventDefinition = moddle.create('bpmn:TimerEventDefinition');
+        }
+        businessObject.eventDefinitions = [eventDefinition];
+        businessObject.cancelActivity = element.type !== 'signal'; // Non-interrupting for signal
+      }
+
+      // Add specific properties for intermediate events
+      if (element.id === 'bpmn:IntermediateCatchEvent' && element.type) {
+        let eventDefinition;
+        switch (element.type) {
+          case 'timer':
+            eventDefinition = moddle.create('bpmn:TimerEventDefinition');
+            break;
+          case 'signal':
+            eventDefinition = moddle.create('bpmn:SignalEventDefinition');
+            break;
+          case 'message':
+            eventDefinition = moddle.create('bpmn:MessageEventDefinition');
+            break;
+          case 'error':
+            eventDefinition = moddle.create('bpmn:ErrorEventDefinition');
+            break;
+          case 'escalation':
+            eventDefinition = moddle.create('bpmn:EscalationEventDefinition');
+            break;
+          case 'conditional':
+            eventDefinition = moddle.create('bpmn:ConditionalEventDefinition');
+            break;
+          default:
+            eventDefinition = moddle.create('bpmn:TimerEventDefinition');
+        }
+        businessObject.eventDefinitions = [eventDefinition];
+      }
+
+      // Add specific properties for participants
+      if (element.id === 'bpmn:Participant') {
+        if (element.expanded) {
+          const process = moddle.create('bpmn:Process');
+          businessObject.processRef = process;
+        }
+      }
+      
+      const elementConfig = {
+        id: businessObject.id,
+        type: element.id,
+        businessObject: businessObject,
+        x: centerX + randomOffset(),
+        y: centerY + randomOffset(),
+        width: getElementWidth(element),
+        height: getElementHeight(element)
+      };
+
+      console.log('Element config:', elementConfig);
+
+      // Create the shape using elementFactory
+      const createdElement = elementFactory.createShape(elementConfig);
+      
+      console.log('Created element:', createdElement);
+      
+      // Add the element to the canvas directly (avoiding the ordering provider issue)
+      canvas.addShape(createdElement, rootElement);
+      
+      // Select the newly created element
+      const selection = modeler.get('selection');
+      selection.select(createdElement);
+      
+      console.log(`✅ Added ${element.name} to diagram`);
+      
+    } catch (error) {
+      console.error('❌ Error adding element:', error);
+      console.error('Error details:', error.message, error.stack);
+    }
+  };
+
+  // Helper functions for element dimensions
+  const getElementWidth = (element) => {
+    const widths = {
+      'bpmn:StartEvent': 36, 'bpmn:EndEvent': 36, 'bpmn:IntermediateEvent': 36,
+      'bpmn:BoundaryEvent': 36, 'bpmn:IntermediateCatchEvent': 36,
+      'bpmn:UserTask': 100, 'bpmn:ServiceTask': 100, 'bpmn:ScriptTask': 100,
+      'bpmn:ManualTask': 100, 'bpmn:SendTask': 100, 'bpmn:ReceiveTask': 100,
+      'bpmn:BusinessRuleTask': 100,
+      'bpmn:ExclusiveGateway': 50, 'bpmn:ParallelGateway': 50,
+      'bpmn:InclusiveGateway': 50, 'bpmn:ComplexGateway': 50, 'bpmn:EventBasedGateway': 50,
+      'bpmn:SubProcess': 120, 'bpmn:CallActivity': 100,
+      'bpmn:DataObjectReference': 36, 'bpmn:DataStoreReference': 50,
+      'bpmn:Participant': 400, 'bpmn:TextAnnotation': 100, 'bpmn:Group': 100
+    };
+    return widths[element.id] || 100;
+  };
+
+  const getElementHeight = (element) => {
+    const heights = {
+      'bpmn:StartEvent': 36, 'bpmn:EndEvent': 36, 'bpmn:IntermediateEvent': 36,
+      'bpmn:BoundaryEvent': 36, 'bpmn:IntermediateCatchEvent': 36,
+      'bpmn:UserTask': 80, 'bpmn:ServiceTask': 80, 'bpmn:ScriptTask': 80,
+      'bpmn:ManualTask': 80, 'bpmn:SendTask': 80, 'bpmn:ReceiveTask': 80,
+      'bpmn:BusinessRuleTask': 80,
+      'bpmn:ExclusiveGateway': 50, 'bpmn:ParallelGateway': 50,
+      'bpmn:InclusiveGateway': 50, 'bpmn:ComplexGateway': 50, 'bpmn:EventBasedGateway': 50,
+      'bpmn:SubProcess': 80, 'bpmn:CallActivity': 80,
+      'bpmn:DataObjectReference': 46, 'bpmn:DataStoreReference': 50,
+      'bpmn:Participant': 200, 'bpmn:TextAnnotation': 50, 'bpmn:Group': 100
+    };
+    return heights[element.id] || 80;
+  };
+
+  // Group filtered elements by category
+  const groupedElements = filteredElements.reduce((groups, element) => {
+    if (!groups[element.category]) {
+      groups[element.category] = [];
+    }
+    groups[element.category].push(element);
+    return groups;
+  }, {});
 
   if (error) {
     return (
@@ -444,16 +833,118 @@ const BpmnEditor = ({ processDefinitionId, processName, xml: initialXml, onSave,
   }
 
   return (
-    <div style={{ 
+    <div ref={mainContainerRef} style={{ 
       display: 'flex', 
       height: '600px', 
       border: '1px solid #ddd',
       overflow: 'hidden'
     }}>
+      {/* Search-based Element Palette */}
+      <div ref={paletteRef} className="search-palette" style={{
+        width: '250px',
+        borderRight: '1px solid #ddd',
+        background: '#f8f9fa',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}>
+        {/* Search Bar */}
+        <div style={{
+          padding: '12px',
+          borderBottom: '1px solid #ddd',
+          background: '#fff'
+        }}>
+          <input
+            type="text"
+            placeholder="🔍 Search BPMN elements..."
+            value={searchTerm}
+            onChange={(e) => {
+              console.log('Search input changed:', e.target.value);
+              setSearchTerm(e.target.value);
+            }}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              fontSize: '14px',
+              outline: 'none',
+              boxSizing: 'border-box'
+            }}
+          />
+        </div>
+
+        {/* Elements List */}
+        <div style={{
+          flex: 1,
+          overflow: 'auto',
+          padding: '8px'
+        }}>
+          {Object.entries(groupedElements).map(([category, elements]) => (
+            <div key={category} style={{ marginBottom: '16px' }}>
+              {/* Category Header */}
+              <div style={{
+                fontSize: '12px',
+                fontWeight: 'bold',
+                color: '#666',
+                marginBottom: '8px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                padding: '4px 8px',
+                background: '#e9ecef',
+                borderRadius: '4px'
+              }}>
+                {category}
+              </div>
+
+              {/* Category Elements */}
+              {elements.map((element, index) => (
+                <div
+                  key={`${element.id}-${index}`}
+                  onClick={() => {
+                    console.log('Element clicked:', element);
+                    addSearchElement(element);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '10px 12px',
+                    margin: '2px 0',
+                    background: '#fff',
+                    border: '1px solid #ddd',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    fontSize: '13px'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = '#e3f2fd';
+                    e.target.style.borderColor = '#2196F3';
+                    e.target.style.transform = 'translateX(2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = '#fff';
+                    e.target.style.borderColor = '#ddd';
+                    e.target.style.transform = 'translateX(0)';
+                  }}
+                >
+                  <span style={{ fontSize: '16px', marginRight: '8px' }}>
+                    {element.icon}
+                  </span>
+                  <span style={{ flex: 1, color: '#333' }}>
+                    {element.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Main Canvas */}
       <div 
         ref={editorContainerRef}
-        className="bpmn-editor-container"
+        className="bpmn-editor-container main-canvas"
         style={{ 
           flex: 1, 
           display: 'flex', 

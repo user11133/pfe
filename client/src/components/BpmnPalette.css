@@ -1,0 +1,117 @@
+/* BPMN Palette Styles */
+.djs-palette {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 200px;
+  height: 100%;
+  background: #f8f9fa;
+  border-right: 1px solid #ddd;
+  overflow: auto;
+  z-index: 1000;
+}
+
+.djs-palette-entries {
+  padding: 10px;
+}
+
+.djs-palette-group {
+  margin-bottom: 15px;
+}
+
+.djs-palette-group-title {
+  font-size: 12px;
+  font-weight: bold;
+  color: #666;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.djs-palette-entry {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  margin: 2px 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.djs-palette-entry:hover {
+  background: #e3f2fd;
+  border-color: #2196F3;
+  transform: translateX(2px);
+}
+
+.djs-palette-entry.selected {
+  background: #2196F3;
+  color: white;
+  border-color: #1976D2;
+}
+
+.djs-palette-entry-icon {
+  width: 24px;
+  height: 24px;
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.djs-palette-entry-label {
+  font-size: 12px;
+  color: #333;
+}
+
+.djs-palette-entry:hover .djs-palette-entry-label {
+  color: #1976D2;
+}
+
+.djs-palette-entry.selected .djs-palette-entry-label {
+  color: white;
+}
+
+/* Ensure canvas doesn't overlap with palette */
+.djs-container {
+  margin-left: 200px;
+}
+
+.djs-palette.djs-palette-open {
+  display: block !important;
+}
+
+/* Palette toggle button */
+.djs-palette-toggle {
+  position: absolute;
+  left: 200px;
+  top: 10px;
+  width: 20px;
+  height: 40px;
+  background: #2196F3;
+  border: 1px solid #1976D2;
+  border-left: none;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  z-index: 1001;
+}
+
+.djs-palette-toggle:hover {
+  background: #1976D2;
+}
+
+.djs-palette.djs-palette-collapsed {
+  width: 0;
+  overflow: hidden;
+}
+
+.djs-palette.djs-palette-collapsed + .djs-palette-toggle {
+  left: 0;
+}
